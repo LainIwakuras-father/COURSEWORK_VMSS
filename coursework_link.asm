@@ -218,15 +218,17 @@ line_brezenhem proc
         ;подготовка к выводу линии
         mov cx, START_X; начальная координата х
         mov dx, START_Y; началаьная координат y
+        inc si
+        mov al, COLOR
+        
 
-       
         ;теперь выводим линию
     MAINLOOP:
         dec si; счетчик для большего расстояния
         jz LINE_FINISHED; вывод последней точки
-        mov al, COLOR
+        push bx
         call put_pixel
-        
+        pop bx 
     SKIP: 
         cmp bx,0 ; Если ВХ < 0 то прямой сегменты
         jge DIAGONAL_LINE; иначе диагональный сегмент
