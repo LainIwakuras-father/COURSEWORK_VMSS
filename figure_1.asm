@@ -833,7 +833,129 @@ check_fig2:
     cmp figure_type, 2
     jne check_fig3
     call hit_rhombus
-    jmp after_check_main
+    jmp after_checkput_pixel_blue proc
+    mov ah, 0Ch
+    mov bh, 0
+    mov al, 01h            ; белый цвет 15
+    int 10h
+    ret
+put_pixel_blue endp
+
+
+; ===== Константы прямоугольника =====
+x1 dw 60
+x2 dw 380
+y1 dw 40
+y2 dw 240
+
+
+
+;Алгоритм Брезенхема реализация
+line_brezenhem proc
+;если координаты начала и конца совпадают
+    mov ax, START_X     ; обозначения координат для (x1,y1) и (x2,y2)
+    cmp ax, END_X  
+    jnz short DRAW
+    mov ax, START_Y
+    cmp ax, END_Y
+    jnz short DRAW
+
+    mov dx, ; y1
+    mov cx, ; x1
+    call put_pixel_blue ;вызов функции вывода одной точки
+    jmp LINE_FINISHED
+
+    DRAW:
+    ;установка нач-ч инкрементов для каждой точки
+        mov cx, 1 ;инкремент для оси х 
+        mov dx, 1 ;инкремент для оси y это SignA
+        ;вычисление вертикальной дистанции
+        mov di, END_Y ; di это A = Y2 - Y1 вычитаем координату начальной  точки из координаты конечно
+        sub di, START_Y
+        jge KEEP_Y; вперед если наклон < 0
+        neg dx ; иначе инкремент SignA = -1 
+        neg di ; в дистанции должна быть  >0
+
+    KEEP_X:
+        mov DIAGONAL_Y_INCREMENT, dx
+
+        ;вычисление горизонтальной дистанции
+        mov si, END_X ; di это B = Y2 - Y1 вычитаем координату начальной  точки из координаты конечно
+        sub si, START_X
+        jge KEEP_X; вперед если наклон < 0
+        neg cx ; иначе инкремент SignB = -1 
+        neg si ; в дистанции должна быть  >0
+
+    KEEP_X:
+        mov DIAGONAL_X_INCREMENT, cx
+
+
+    ;определяем горизонтальной или вертикальны прямые сегменты
+    cmp si,di ;горизонтальные длинее? |A| < |B|?
+    jge HORT_SEG ;если да, то вперед f = f+A*SignA
+    mov cx,0 ;иначе для прямых х не меняется 
+    xchg si,di ;помещаем большее в сх
+    jmp SAVE_VALUE; сохраняем значение
+    
+    HORT_SEG:
+        mov dx, 0 ;теперь для прямых не менятся Y
+    
+    SAVE_VALUE:
+        mov SHORT_DISTANSE, di ; меньшее растояние 
+        mov STRAIGHT_X_INCREMENT, cx ; один из них 0
+        mov STRAIGHT_Y_INCREMENT, dx ; а в другой -1
+        mov ax, SHORT_DISTANSE ;меньшее растояние в ax
+        shl ax,1 ;удваиваем его shl - инструкция  выполняющая логический сдвиг влево содержимого регистра ax на 1 бит. что посути умножение на 2 как C
+
+        mov STRAIGHT_COUNT,ax
+        sub ax,si ;2* меньшее - большее
+        mov bx, ax ;запоминаем как счетчик цикла 
+        sub ax,si ;2*меньшее - 2*большее
+        mov DIAGONAL_COUNT, ax ; запоминаем
+
+        ;подготовка к выводу линии
+        mov cx, START_X; начальная координата х
+        mov dx, START_Y; началаьная координат y
+
+        inc si
+        mov al, byte ptr COLOR ;для вывода определенного цвета
+        
+        ;теперь выводим линию
+    MAINLOOP:
+        dec si; счетчик для большего расстояния
+        jz LINE_FINISHED; вывод последней точки
+        push bx
+        mov bh 
+        mov ax, 0Ch
+        int 10h
+
+        pop bx
+
+        call put_pixel_blue
+    SKIP: 
+        cmp bx,0 ; Если ВХ < 0 то прямой сегменты
+        jge DIAGONAL_LINE; иначе диагональный сегмент
+        ;выводим прямые сегменты
+        add cx, STRAIGHT_X_INCREMENT; определяем инкременты по осям
+        add dx, STRAIGHT_Y_INCREMENT; 
+        add bx, STRAIGHT_COUNT; фактор выравнивания
+        
+        jmp short MAINLOOP; на след точку
+
+    ;выводим диагональный сегмент
+    DIAGONAL_LINE:
+        add cx, STRAIGHT_X_INCREMENT; определяем инкременты по осям
+        add dx, STRAIGHT_Y_INCREMENT; 
+        add bx, DIAGONAL_COUNT;  фактор выравнивания
+        
+        jmp short MAINLOOP; на след точку
+    
+    LINE_FINISHED:
+        ret
+line_brezenhem endp
+
+
+end start_main
 check_fig3:
     cmp figure_type, 3
     jne check_fig4
