@@ -17,20 +17,6 @@ start:
 
 main:
     ; Рисуем четыре стороны прямоугольника
-     
-
-    ; Пример вызова горизонтальной линии 
-    mov ax, x1
-    mov word ptr [START_X], ax
-    mov ax, y1
-    mov word ptr [START_Y], ax
-    mov ax, x2
-    mov word ptr [END_X], ax
-    mov ax, y2
-    mov word ptr [END_Y], ax
-    mov al, blue
-    mov byte ptr [COLOR], al
-    call line_brezenhem
 
 
 
@@ -84,7 +70,103 @@ mov ax, y2
 mov END_Y, ax
 mov al, white
 mov COLOR, al
-call line_brezenhem
+call line_brezenhem 
+     
+
+  ;рисуем фигуры внутри прямоугольника
+    ; вертикальная (x3 постоянна)
+    mov ax, x3
+    mov START_X, ax
+    mov ax, y1
+    mov START_Y, ax
+    mov ax, x3
+    mov END_X, ax
+    mov ax, y2
+    mov END_Y, ax
+    mov al, blue
+    mov COLOR, al
+    call line_brezenhem
+
+    ; вертикальная (x4 постоянна)
+    mov ax, x4
+    mov START_X, ax
+    mov ax, y1
+    mov START_Y, ax
+    mov ax, x4
+    mov END_X, ax
+    mov ax, y2
+    mov END_Y, ax
+    mov al, blue
+    mov COLOR, al
+    call line_brezenhem
+    
+    ; горизонтальная (y3 постоянна)
+    mov ax, x1
+    mov START_X, ax
+    mov ax, y3
+    mov START_Y, ax
+    mov ax, x2
+    mov END_X, ax
+    mov ax, y3
+    mov END_Y, ax
+    mov al, blue
+    mov COLOR, al
+    call line_brezenhem
+
+    ; горизонтальная (y4 постоянна)
+    mov ax, x1
+    mov START_X, ax
+    mov ax, y4
+    mov START_Y, ax
+    mov ax, x2
+    mov END_X, ax
+    mov ax, y4
+    mov END_Y, ax
+    mov al, blue
+    mov COLOR, al
+    call line_brezenhem
+
+        ; ========== 2. Рисуем треугольник и вписанный круг ==========
+    ; Треугольник (прямоугольный, зелёный)
+    ; Вершины: A(x_triA, y_triA), B(x_triB, y_triB), C(x_triC, y_triC)
+    ; Стороны: AB - горизонтальная, AC - вертикальная, BC - гипотенуза
+    mov ax, x_triA
+    mov START_X, ax
+    mov ax, y_triA
+    mov START_Y, ax
+    mov ax, x_triB
+    mov END_X, ax
+    mov ax, y_triB
+    mov END_Y, ax
+    mov al, green
+    mov COLOR, al
+    call line_brezenhem          ; AB
+
+    mov ax, x_triA
+    mov START_X, ax
+    mov ax, y_triA
+    mov START_Y, ax
+    mov ax, x_triC
+    mov END_X, ax
+    mov ax, y_triC
+    mov END_Y, ax
+    mov al, green
+    mov COLOR, al
+    call line_brezenhem          ; AC
+
+    mov ax, x_triB
+    mov START_X, ax
+    mov ax, y_triB
+    mov START_Y, ax
+    mov ax, x_triC
+    mov END_X, ax
+    mov ax, y_triC
+    mov END_Y, ax
+    mov al, green
+    mov COLOR, al
+    call line_brezenhem
+
+
 
     ; Ожидание клавиши
     mov ah, 00h
@@ -97,27 +179,6 @@ exit:
     int 10h
     mov ah, 4Ch
     int 21h
-
-; ===== Универсальная горизонтальная линия =====
-
-draw_horizontal proc
-draw_h_loop:
-    call put_pixel
-    inc cx
-    cmp cx, si
-    jbe draw_h_loop
-    ret
-draw_horizontal endp
-
-draw_vertical proc
-draw_v_loop:
-    call put_pixel
-    inc dx
-    cmp dx, si
-    jbe draw_v_loop
-    ret
-draw_vertical endp
-
 
 fill_rectangle proc ;это заливки
     fill_y:
@@ -148,8 +209,13 @@ put_pixel endp
 
 
 
+
 ;Алгоритм Брезенхема реализация
 line_brezenhem proc
+    ;push bp     ; сохраняем статическое начало стека с стеке  2 байта
+    ;mov  bp, sp ; перезаписываем внего первоначальное положение конца стека припуше sp сдвигается так что лучше пользоватся bp
+    ;надо переписать под использование вместо переменных stack так как это удобнее и понятно
+
 ;если координаты начала и конца совпадают
     mov ax, START_X     ; обозначения координат для (x1,y1) и (x2,y2)
     cmp ax, END_X  
@@ -258,15 +324,39 @@ line_brezenhem endp
     
     blue db 01h
     white  db 0Fh
-    ;координаты флага 
+    pink db 0Dh
+    green db 02h
+    ;координаты белого прямоугольника  переименовать потом
     x1 dw 60
     x2 dw 380
     y1 dw 40
     y2 dw 240
     ;координаты маленьких прямоуголников для креста внутри флага
+    x3 dw 145 ;для вертикального прямоугольника
+    x4 dw 195 
+    y3 dw 115; для горизонатального 
+    y4 dw 165
+
     ;координаты треугольника
+    ; Координаты треугольника (прямоугольный, прямой угол в A)
+        x_triA dw 450
+        y_triA dw 40
+        x_triB dw 650   ; горизонтальный катет
+        y_triB dw 40
+        x_triC dw 450
+        y_triC dw 240   ; вертикальный катет
 
-
+    ; Переменные для вычислений
+a_cathetus    dw 0
+b_cathetus    dw 0
+c_hypotenuse  dw 0
+radius        dw 0
+circle_center_x dw 0
+circle_center_y dw 0
+area_triangle dw 0
+area_circle   dw 0
+triangle_center_x dw 0
+triangle_center_y dw 0
     ;аргументы функции
     COLOR   db 0
     START_X dw 0
