@@ -690,7 +690,7 @@ NumToStr PROC
         ; очищаем весь буфер нулями
     push di
     mov di, offset num_buf
-    mov cx, 15
+    mov cx, 12
     xor al, al
     rep stosb
     pop di
