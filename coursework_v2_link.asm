@@ -1,5 +1,5 @@
 .model 	small
-.stack	200h
+.stack	300h
 
 ; Координаты
 CIRCLE_X  EQU 310
@@ -58,8 +58,8 @@ COL_PINK EQU 13
 
 
         ; ---- ДЛЯ ВЫВОДА ТЕКСТА ----
-    num_buf     db 12 dup(0)      ; буфер для преобразования числа
-    str_sc      db 'Scirc=',0
+    num_buf     db 13 dup(0)      ; буфер для преобразования числа
+    str_sc      db 'Scirl=',0
     str_sr      db 'Srect=',0
     area_circle dw ?               ; вычисленная площадь круга
     area_rect   dw ?               ; вычисленная площадь прямоугольника
@@ -72,6 +72,7 @@ COL_PINK EQU 13
     pn_row      db ?
     pn_attr     db ?
     pn_num      dw ?
+    xy_y       DW ?
 .code
 put_pixel proc 
 	mov bh, 0
@@ -243,7 +244,7 @@ drawCircle proc
         mov delta, 2
 	mov ax, 2
 	mov dx, 0
-	imul y
+	mul y
 	sub delta, ax
 	mov eror, 0
 	jmp ccicle
@@ -282,7 +283,7 @@ ccicle:
 	mov ax, eror
 	mov dx, 0
 	mov bx, 2
-	imul bx
+	mul bx
 	sub ax, 1
 	mov eror, ax
 	cmp delta, 0
@@ -293,7 +294,7 @@ ccicle:
 	inc x
 	mov ax, 2
 	mov dx, 0
-	imul x
+	mul x
 	add ax, 1
 	add delta, ax
         jmp ccicle
@@ -302,7 +303,7 @@ sstep:
 	sub ax, x
 	mov bx, 2
 	mov dx, 0
-	imul bx
+	mul bx
 	sub ax, 1
 	mov eror, ax
 	cmp delta, 0
@@ -314,7 +315,7 @@ sstep:
 	sub ax, y
 	mov bx, 2
 	mov dx, 0
-	imul bx
+	mul bx
 	add delta, ax
         dec y
 	jmp ccicle
@@ -322,7 +323,7 @@ tstep:
 	dec y
         mov ax, 2
 	mov dx, 0
-	imul y
+	mul y
 	mov bx, 1
 	sub bx, ax
 	add delta, bx
@@ -438,15 +439,15 @@ fill_circle proc
     push bp                 ; сохраняем старое bp
     mov  bp, sp             ; bp теперь указывает на вершину стека
     sub  sp, 4              ; выделяем 4 байта под локальные переменные:
-                            ; [bp-2] = radius (сохраним)
-                            ; [bp-4] = color  (сохраним)
+                            
+                            
     ; ---- Сохраняем регистры, которые будем менять ----
-    push ax                 ; сохраняем ax
-    push bx                 ; сохраняем bx
-    push cx                 ; сохраняем cx
-    push dx                 ; сохраняем dx
-    push si                 ; сохраняем si
-    push di                 ; сохраняем di
+    push ax                
+    push bx                 
+    push cx                 
+    push dx                
+    push si                 
+    push di                 
 
     ; ---- Загружаем параметры из стека в регистры ----
     mov  si, [bp+4]         ; si = centerX
@@ -457,29 +458,24 @@ fill_circle proc
     mov  [bp-4], ax         ; сохраняем color в локальную переменную
 
     ; ---- Инициализация переменных алгоритма Брезенхема ----
-    mov  cx, 0              ; cx = x = 0 (текущий x, растёт)
-    mov  dx, [bp-2]         ; dx = y = radius (текущий y, убывает)
-    ; decision parameter: d = 2 - 2*radius
-    ; Используем bx для хранения d (decision parameter)
-    mov  bx, 2              ; bx = 2
-    sub  bx, dx             ; bx = 2 - radius
-    sub  bx, dx             ; bx = 2 - 2*radius
+    mov  cx, 0              
+    mov  dx, [bp-2]         
+
+    mov  bx, 2              
+    sub  bx, dx             
+    sub  bx, dx             
 
     ; ---- Рисуем центральную горизонтальную линию (y = centerY) ----
-    ; Это самая широкая линия: от centerX - radius до centerX + radius
-
-
-
-
-    push [bp-4]             ; color (word)
-    push di                 ; y2 = centerY
+    
+    push [bp-4]             
+    push di                 
     mov  ax, si
-    add  ax, [bp-2]         ; ax = centerX + radius
-    push ax                 ; x2
-    push di                 ; y1 = centerY
+    add  ax, [bp-2]         
+    push ax                 
+    push di                 
     mov  ax, si
-    sub  ax, [bp-2]         ; ax = centerX - radius
-    push ax                 ; x1
+    sub  ax, [bp-2]         
+    push ax                 
     call line_brezenhem     ; рисуем горизонтальную линию
 
     ; ---- Основной цикл: пока x <= y ----
@@ -488,7 +484,8 @@ circle_loop:
     jle  circle_continue       ; если x > y, выходим из цикла
     jmp near ptr circle_exit
 circle_continue:
-    ; ----- 1. Линия: y = centerY + dx (нижняя половина, уровень y) -----
+    
+
     push [bp-4]             ; color
     mov  ax, di
     add  ax, dx             ; ax = centerY + y
@@ -504,7 +501,7 @@ circle_continue:
     push ax                 ; x1
     call line_brezenhem
 
-    ; ----- 2. Линия: y = centerY - dx (верхняя половина, уровень -y) -----
+   
     push [bp-4]             ; color
     mov  ax, di
     sub  ax, dx             ; ax = centerY - y
@@ -520,7 +517,7 @@ circle_continue:
     push ax
     call line_brezenhem
 
-    ; ----- 3. Линия: y = centerY + cx (нижняя половина, уровень x) -----
+   
     push [bp-4]             ; color
     mov  ax, di
     add  ax, cx             ; ax = centerY + x
@@ -536,7 +533,6 @@ circle_continue:
     push ax
     call line_brezenhem
 
-    ; ----- 4. Линия: y = centerY - cx (верхняя половина, уровень -x) -----
     push [bp-4]             ; color
     mov  ax, di
     sub  ax, cx             ; ax = centerY - x
@@ -553,7 +549,7 @@ circle_continue:
     call line_brezenhem
 
     ; ---- Обновление переменных x, y и d по алгоритму Брезенхема ----
-    cmp  bx, 0              ; проверяем d (decision parameter)
+    cmp  bx, 0              
     jle  skip_dec_y         ; если d <= 0, не уменьшаем y
     ; иначе d > 0 -> нужно уменьшить y
     dec  dx                 ; y = y - 1
@@ -579,15 +575,15 @@ update_x:
     jmp  circle_loop        ; повторить цикл
 
 circle_exit:
-    ; ---- Эпилог: восстановление регистров и выход ----
-    pop  di                 ; восстанавливаем di
-    pop  si                 ; восстанавливаем si
-    pop  dx                 ; восстанавливаем dx
-    pop  cx                 ; восстанавливаем cx
-    pop  bx                 ; восстанавливаем bx
-    pop  ax                 ; восстанавливаем ax
-    mov  sp, bp             ; освобождаем локальные переменные
-    pop  bp                 ; восстанавливаем bp
+   
+    pop  di                 
+    pop  si                 
+    pop  dx                 
+    pop  cx                 
+    pop  bx                
+    pop  ax                
+    mov  sp, bp            
+    pop  bp                 
     ret  8                  ; возврат и очистка 4 параметров (8 байт)
 fill_circle endp
 
@@ -636,48 +632,6 @@ DrawSwissFlag proc
     ret
 DrawSwissFlag endp
 
-
-
-
-Print_Squre proc 
-
-    push ax
-    push bx 
-    push cx
-
-    ; ---- Вычисление площади круга (R=90) ----
-    ; S = π * R^2, π ≈ 3.14 -> 314/100
-    mov  ax, CIRCLE_R
-    imul ax          ; ax = 90*90 = 8100
-    mov  bx, 314
-    imul bx              ; dx:ax = 8100 * 314 = 2 543 400
-    mov  cx, 100
-    div  cx              ; ax = 2 543 400 / 100 = 25 434
-    mov  area_circle, ax
-
-    ; ---- Вычисление площади прямоугольника ----
-    mov  ax, RECT_X2
-    sub  ax, RECT_X1     ; ширина = 380 - 250 = 130
-    mov  bx, RECT_Y2
-    sub  bx, RECT_Y1     ; высота = 330 - 255 = 75
-    imul bx              ; ax = 130 * 75 = 9 750
-    mov  area_rect, ax
-
-    ; ---- Вывод площадей на экран ----
-    call PrintArea_Circle
-    call PrintArea_Rect
-
-pop cx
-pop bx
-pop ax
-
-ret
-Print_Squre endp
-
-
-
-
-
 ; ВЫВОД ТЕКСТА 
 ; Преобразует AX в строку, записывает в num_buf и возвращает в SI
 NumToStr PROC
@@ -687,18 +641,12 @@ NumToStr PROC
     push dx
     push di
 
-        ; очищаем весь буфер нулями
-    push di
-    mov di, offset num_buf
-    mov cx, 12
-    xor al, al
-    rep stosb
-    pop di
-    ; теперь записываем цифры с конца
-    mov di, offset num_buf + 10   ; последний байт буфера
-    mov byte ptr  di , 0
-    dec di
-    mov bx, 10
+    ; запись цифр с конца
+    mov  di, offset num_buf + 11
+    mov  byte ptr [di], 0
+    mov  bx, 10
+
+
 nt_loop:
     xor dx, dx
     div bx
@@ -709,8 +657,6 @@ nt_loop:
     jne nt_loop
     inc di
     mov si, di
-
-
     pop di
     pop dx
     pop cx
@@ -718,7 +664,6 @@ nt_loop:
     pop ax
     ret
 NumToStr ENDP
-
 
 PrintStrAt PROC
     push ax
@@ -761,7 +706,6 @@ ps_done:
     ret
 PrintStrAt ENDP
 
-
 PrintNumber PROC
     push si
     push ax
@@ -784,12 +728,92 @@ PrintNumber PROC
     pop si
     ret
 PrintNumber ENDP
+PrintXY PROC
+    push ax
+    push bx
+    push cx
+    push dx
+    push si
+    mov  pn_col , bl
+    mov  pn_row , bh
+    mov  pn_attr , al
+    mov  xy_y , dx             
+    ; Вывод X и запятой
+    mov ax, cx                  
+    call NumToStr               
+    mov bl,  pn_col 
+    mov bh,  pn_row 
+    mov al,  pn_attr 
+    call PrintStrAt
+    add byte ptr  pn_col , 3
+    mov ah, 02h
+    mov bh, 0
+    mov dh,  pn_row 
+    mov dl,  pn_col 
+    int 10h
+    mov ah, 09h
+    mov al, ','
+    mov bh, 0
+    mov bl,  pn_attr 
+    mov cx, 1
+    int 10h
+    inc byte ptr  pn_col 
+    ; Вывод Y 
+    mov ax,  xy_y 
+    call NumToStr               
+    mov bl,  pn_col 
+    mov bh,  pn_row 
+    mov al,  pn_attr 
+    call PrintStrAt
+    pop si
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+PrintXY ENDP
+PrintCoord_RectTopLeft PROC 
+    mov cx, RECT_X1
+    mov dx, RECT_Y1
+    mov bl, 29
+    mov bh, 14
+    mov al, COL_WHITE
+    call PrintXY
+    ret
+PrintCoord_RectTopLeft ENDP
 
+PrintCoord_RectTopRight PROC
+    mov cx, RECT_X2
+    mov dx, RECT_Y1
+    mov bl, 49
+    mov bh, 15
+    mov al, COL_WHITE
+    call PrintXY
+    ret
+PrintCoord_RectTopRight ENDP
+PrintCoord_RectBottomLeft PROC
+    mov cx, RECT_X1
+    mov dx, RECT_Y2
+    mov bl, 29
+    mov bh, 23
+    mov al, COL_WHITE
+    call PrintXY
+    ret
+PrintCoord_RectBottomLeft ENDP
+PrintCoord_RectBottomRight PROC
+    mov cx, RECT_X2
+    mov dx, RECT_Y2
+    mov bl, 49
+    mov bh, 23
+    mov al, COL_WHITE
+    call PrintXY
+    ret
+PrintCoord_RectBottomRight ENDP
 PrintArea_Circle PROC
     push si
     mov si, offset str_sc
-    mov bl, 34 ;Y
-    mov bh, 19 ;X
+    mov bl, 34
+    mov bh, 19
     mov al, COL_WHITE
     call PrintStrAt
     mov ax,  area_circle        ; ax = площадь круга
@@ -801,7 +825,6 @@ PrintArea_Circle PROC
     pop si
     ret
 PrintArea_Circle ENDP
-
 PrintArea_Rect PROC
     push si
     mov si, offset str_sr
@@ -820,6 +843,48 @@ PrintArea_Rect PROC
 PrintArea_Rect ENDP
 
 
+Print_Squre proc 
+
+    push ax
+    push bx 
+    push cx
+
+    
+    ; S = π * R^2, π ≈ 3.14 -> 355/113
+    mov  ax, CIRCLE_R
+    mul ax          
+    mov  bx, 315 ;с апроксомацией 355/113
+    mul bx             
+    mov  cx, 113
+    div  cx              
+    mov  area_circle, ax
+
+    ; ---- Вычисление площади прямоугольника ----
+    mov  ax, RECT_X2
+    sub  ax, RECT_X1     
+    mov  bx, RECT_Y2
+    sub  bx, RECT_Y1    
+    mul bx              
+    mov  area_rect, ax
+
+    
+    call PrintArea_Circle
+    call PrintArea_Rect
+
+    pop cx
+    pop bx
+    pop ax
+
+ret
+Print_Squre endp
+
+
+
+
+
+
+
+
 
 start:
 	mov ax, @data
@@ -833,9 +898,9 @@ start:
 	int 10h    ;Включение видеорежима VGA
 
 
-    mov radius, CIRCLE_R    ;Радиус нашего круга.
-	mov x0, CIRCLE_X    ;Номер строки, в котором будет находится центр круга
-	mov y0, CIRCLE_Y    ;Номер столбца, в котором будет находится центр круга
+    mov radius, CIRCLE_R    
+	mov x0, CIRCLE_X    
+	mov y0, CIRCLE_Y    
 	call DrawCircle
     push COL_PINK
     push CIRCLE_R        ; radius
@@ -857,14 +922,16 @@ start:
     push RECT_X1
     call fill_rect
 
+    ;ВЫВОД КООРДИНАТ
+    call PrintCoord_RectTopLeft
+    call PrintCoord_RectTopRight
+    call PrintCoord_RectBottomLeft
+    call PrintCoord_RectBottomRight
 
 	;вывод площадей фигур на экран
     call Print_Squre
 
-    ; Ожидание клавиши и очистка экрана
-    ;mov ah, 00h
-    ;int 16h
-    ;call ClearScreen
+  
     ;рисуем флаг 
     call DrawSwissFlag
 
